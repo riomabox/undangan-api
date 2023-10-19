@@ -27,6 +27,7 @@ Route::prefix('/api')->group(function () {
         // Get and create comment
         Route::controller(CommentController::class)->group(function () {
             Route::get('/', 'get');
+            Route::get('/count', 'getCount');
             Route::post('/', 'create');
         });
 

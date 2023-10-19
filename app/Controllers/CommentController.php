@@ -35,7 +35,7 @@ class CommentController extends Controller
         $data = $request->get('key') === env('JWT_KEY')
             ? Comment::orderBy('id', 'DESC')
             : Comment::with('comments')
-            ->select(['uuid', 'nama', 'hadir', 'komentar', 'created_at'])
+            ->select(['uuid', 'nama', 'hadir', 'komentar', 'jumlah', 'created_at'])
             ->where('user_id', context()->user->id)
             ->whereNull('parent_id')
             ->orderBy('id', 'DESC');
@@ -43,6 +43,13 @@ class CommentController extends Controller
         if ($valid->per > 0 && ($valid->next ?? 0) >= 0) {
             $data = $data->limit($valid->per)->offset($valid->next ?? 0);
         }
+
+        return $this->json->success($data->get(), 200);
+    }
+
+    public function getCount(Request $request): JsonResponse
+    {
+        $data = Comment::orderBy('id', 'DESC')->count('id', 'jumlah');
 
         return $this->json->success($data->get(), 200);
     }
@@ -65,7 +72,7 @@ class CommentController extends Controller
         $data = Comment::where('uuid', $valid->id)
             ->where('user_id', context()->user->id)
             ->limit(1)
-            ->select(['nama', 'hadir', 'komentar', 'created_at'])
+            ->select(['nama', 'hadir', 'komentar', 'jumlah', 'created_at'])
             ->first()
             ->exist();
 
@@ -76,75 +83,75 @@ class CommentController extends Controller
         return $this->json->success($data, 200);
     }
 
-    public function like(string $id): JsonResponse
-    {
-        $valid = Validator::make(
-            [
-                'id' => $id
-            ],
-            [
-                'id' => ['required', 'str', 'trim', 'uuid', 'max:37']
-            ]
-        );
+    // public function like(string $id): JsonResponse
+    // {
+    //     $valid = Validator::make(
+    //         [
+    //             'id' => $id
+    //         ],
+    //         [
+    //             'id' => ['required', 'str', 'trim', 'uuid', 'max:37']
+    //         ]
+    //     );
 
-        if ($valid->fails()) {
-            return $this->json->error($valid->messages(), 400);
-        }
+    //     if ($valid->fails()) {
+    //         return $this->json->error($valid->messages(), 400);
+    //     }
 
-        $data = Comment::where('uuid', $valid->id)
-            ->where('user_id', context()->user->id)
-            ->limit(1)
-            ->select('uuid')
-            ->first()
-            ->exist();
+    //     $data = Comment::where('uuid', $valid->id)
+    //         ->where('user_id', context()->user->id)
+    //         ->limit(1)
+    //         ->select('uuid')
+    //         ->first()
+    //         ->exist();
 
-        if (!$data) {
-            return $this->json->error(['not found'], 404);
-        }
+    //     if (!$data) {
+    //         return $this->json->error(['not found'], 404);
+    //     }
 
-        $like = Like::create([
-            'uuid' => Uuid::uuid4()->toString(),
-            'comment_id' => $data->uuid
-        ]);
+    //     $like = Like::create([
+    //         'uuid' => Uuid::uuid4()->toString(),
+    //         'comment_id' => $data->uuid
+    //     ]);
 
-        return $this->json->success($like->only('uuid'), 201);
-    }
+    //     return $this->json->success($like->only('uuid'), 201);
+    // }
 
-    public function unlike(string $id): JsonResponse
-    {
-        $valid = Validator::make(
-            [
-                'id' => $id
-            ],
-            [
-                'id' => ['required', 'str', 'trim', 'uuid', 'max:37']
-            ]
-        );
+    // public function unlike(string $id): JsonResponse
+    // {
+    //     $valid = Validator::make(
+    //         [
+    //             'id' => $id
+    //         ],
+    //         [
+    //             'id' => ['required', 'str', 'trim', 'uuid', 'max:37']
+    //         ]
+    //     );
 
-        if ($valid->fails()) {
-            return $this->json->error($valid->messages(), 400);
-        }
+    //     if ($valid->fails()) {
+    //         return $this->json->error($valid->messages(), 400);
+    //     }
 
-        $data = Like::where('uuid', $valid->id)
-            ->select('id')
-            ->limit(1)
-            ->first()
-            ->exist();
+    //     $data = Like::where('uuid', $valid->id)
+    //         ->select('id')
+    //         ->limit(1)
+    //         ->first()
+    //         ->exist();
 
-        if (!$data) {
-            return $this->json->error(['not found'], 404);
-        }
+    //     if (!$data) {
+    //         return $this->json->error(['not found'], 404);
+    //     }
 
-        $status = $data->destroy() == 1;
+    //     $status = $data->destroy() == 1;
 
-        if ($status) {
-            return $this->json->success([
-                'status' => $status
-            ], 200);
-        }
+    //     if ($status) {
+    //         return $this->json->success([
+    //             'status' => $status
+    //         ], 200);
+    //     }
 
-        return $this->json->error(['server error'], 500);
-    }
+    //     return $this->json->error(['server error'], 500);
+    // }
 
     public function destroy(string $id, Request $request): JsonResponse
     {
@@ -200,13 +207,14 @@ class CommentController extends Controller
     {
         $valid = Validator::make(
             [
-                ...$request->only(['hadir', 'komentar']),
+                ...$request->only(['hadir', 'komentar', 'jumlah']),
                 'id' => $id
             ],
             [
                 'id' => ['required', 'str', 'trim', 'uuid', 'max:37'],
                 'hadir' => ['bool'],
                 'komentar' => ['required', 'str', 'max:500'],
+                'jumlah' => ['nullable', 'int',],
             ]
         );
 
@@ -217,7 +225,7 @@ class CommentController extends Controller
         $data = Comment::where('own', $valid->id)
             ->where('user_id', context()->user->id)
             ->limit(1)
-            ->select(['id', 'hadir', 'komentar'])
+            ->select(['id', 'hadir', 'komentar', 'jumlah'])
             ->first()
             ->exist();
 
@@ -227,6 +235,7 @@ class CommentController extends Controller
 
         $data->hadir = $valid->hadir;
         $data->komentar = $valid->komentar;
+        $data->jumlah = $valid->jumlah;
         $status = $data->save() == 1;
 
         if ($status) {
@@ -242,7 +251,7 @@ class CommentController extends Controller
     {
         $valid = Validator::make(
             [
-                ...$request->only(['id', 'nama', 'hadir', 'komentar']),
+                ...$request->only(['id', 'nama', 'hadir', 'komentar', 'jumlah']),
                 'ip' => env('HTTP_CF_CONNECTING_IP') ? $request->server->get('HTTP_CF_CONNECTING_IP') : $request->ip(),
                 'user_agent' => $request->server->get('HTTP_USER_AGENT')
             ],
@@ -252,6 +261,7 @@ class CommentController extends Controller
                 'hadir' => ['bool'],
                 'komentar' => ['required', 'str', 'max:500'],
                 'user_agent' => ['nullable', 'str', 'trim', 'max:500'],
+                'jumlah' => ['nullable', 'int',],
                 'ip' => ['nullable', 'str', 'trim', 'max:50']
             ]
         );
@@ -267,7 +277,7 @@ class CommentController extends Controller
         $data['user_id'] = context()->user->id;
 
         return $this->json->success(
-            Comment::create($data)->only(['nama', 'hadir', 'komentar', 'uuid', 'own', 'created_at']),
+            Comment::create($data)->only(['nama', 'hadir', 'komentar', 'uuid', 'own', 'created_at', 'jumlah']),
             201
         );
     }

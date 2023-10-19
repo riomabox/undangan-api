@@ -16,7 +16,7 @@ return new class implements Migration
         Schema::table('comments', function (Table $table) {
             $table->addColumn(function ($table) {
 
-                $table->string('jumlah')->nullable();
+                $table->integer('jumlah')->nullable();
             });
         });
     }
