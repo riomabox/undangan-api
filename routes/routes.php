@@ -27,11 +27,20 @@ Route::prefix('/api')->group(function () {
         // Get and create comment
         Route::controller(CommentController::class)->group(function () {
             Route::get('/', 'get');
-            Route::get('/count', 'getCount');
             Route::post('/', 'create');
         });
 
         Route::options('/'); // Preflight request [/api/comment]
+
+        Route::prefix('/count')->group(function () {
+            Route::controller(CommentController::class)->group(function () {
+
+                // Get count
+                Route::get('/', 'getCount');
+            });
+
+            Route::options('/'); // Preflight request [/api/comment/count]
+        });
 
         Route::prefix('/{id}')->group(function () {
             Route::controller(CommentController::class)->group(function () {
