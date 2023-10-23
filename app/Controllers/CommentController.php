@@ -49,7 +49,9 @@ class CommentController extends Controller
 
     public function getCount(Request $request): JsonResponse
     {
-        $data = Comment::orderBy('id', 'DESC')->count('id', 'jumlah');
+        $data = $request->get('key') === env('JWT_KEY')
+            ? Comment::orderBy('id', 'DESC')
+            : Comment::where('user_id', context()->user->id)->orderBy('id', 'DESC')->count('id', 'jumlah');
 
         return $this->json->success($data->get(), 200);
     }
