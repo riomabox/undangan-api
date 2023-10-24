@@ -36,7 +36,7 @@ Route::prefix('/api')->group(function () {
             Route::controller(CommentController::class)->group(function () {
 
                 // Get count
-                Route::get('/', 'getAll');
+                Route::get('/', 'getCount');
             });
 
             Route::options('/'); // Preflight request [/api/comment/count]
