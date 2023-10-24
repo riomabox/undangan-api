@@ -47,6 +47,20 @@ class CommentController extends Controller
         return $this->json->success($data->get(), 200);
     }
 
+    public function getAll(Request $request): JsonResponse
+    {
+
+        $data = $request->get('key') === env('JWT_KEY')
+            ? Comment::orderBy('id', 'DESC')
+            : Comment::with('comments')
+            ->select(['uuid', 'nama', 'hadir', 'komentar', 'jumlah', 'created_at'])
+            ->where('user_id', context()->user->id)
+            ->whereNull('parent_id')
+            ->orderBy('id', 'DESC');
+
+        return $this->json->success($data->get(), 200);
+    }
+
     public function getCount(Request $request): JsonResponse
     {
         $data = $request->get('key') === env('JWT_KEY')
