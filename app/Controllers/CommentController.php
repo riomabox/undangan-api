@@ -52,11 +52,9 @@ class CommentController extends Controller
 
         $data = $request->get('key') === env('JWT_KEY')
             ? Comment::orderBy('id', 'DESC')
-            : Comment::with('comments')
-            ->select(['uuid', 'nama', 'hadir', 'komentar', 'jumlah', 'created_at'])
+            : Comment::select(['uuid'])
             ->where('user_id', context()->user->id)
-            ->whereNull('parent_id')
-            ->orderBy('id', 'DESC');
+            ->orderBy('id', 'DESC')->count('uuid', 'jumlah');
 
         return $this->json->success($data->get(), 200);
     }
@@ -64,8 +62,10 @@ class CommentController extends Controller
     public function getCount(Request $request): JsonResponse
     {
         $data = $request->get('key') === env('JWT_KEY')
-            ? Comment::orderBy('id', 'DESC')
-            : Comment::where('user_id', context()->user->id)->orderBy('id', 'DESC')->count('id', 'jumlah');
+            ? Comment::orderBy('id', 'DESC') : Comment::where('user_id', context()->user->id)->orderBy('id', 'DESC')->count('id', 'jumlah');
+        // Comment::orderBy('id', 'DESC')->selectRaw('COUNT(comments.id) as jumlah')->where('user_id', context()->user->id);
+        // Comment::where('user_id', context()->user->id)->orderBy('id', 'DESC')->count('id', 'jumlah');
+        // $data = DB::table('comments')->select(DB::raw('count(*) as jumlah'));
 
         return $this->json->success($data->get(), 200);
     }
